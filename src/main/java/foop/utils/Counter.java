@@ -10,7 +10,7 @@ package foop.utils;
 
 /**
  * <p>
- * counter utility
+ * Counter utility
  * 
  * @author sidmishraw
  *

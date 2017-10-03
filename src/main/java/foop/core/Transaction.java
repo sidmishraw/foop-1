@@ -8,13 +8,12 @@
  */
 package foop.core;
 
-import java.util.Objects;
-import java.util.Set;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import foop.utils.Counter;
 
 /**
  * @author sidmishraw
@@ -24,7 +23,10 @@ import foop.utils.Counter;
  */
 public class Transaction extends Thread {
     
-    private static final Logger logger = LoggerFactory.getLogger(Transaction.class);
+    /*** Log and administrative stuff *****/
+    private static final Logger logger              = LoggerFactory.getLogger(Transaction.class);
+    private static final long   MAX_SLEEP_WAIT_TIME = 1000;
+    /*** Log and administrative stuff *****/
     
     /**
      * <p>
@@ -45,60 +47,192 @@ public class Transaction extends Thread {
     @FunctionalInterface
     private interface TransactionOperation {
         
+        /**
+         * <p>
+         * Applies the operation logic
+         * 
+         * @return true if the operation was completed successfully, else return
+         *         false
+         */
         public boolean apply();
     }
     
     /**
      * <p>
-     * operations: The functional interface that is used to define the
-     * transaction's operations.
+     * <i>operation</i>: The functional interface that is used to define the
+     * transaction's operational logic(execution logic).
      */
-    private TransactionOperation operations;
+    private TransactionOperation operation;
     
     /**
      * <p>
-     * The reference to the STM manager that handles the global operations.
+     * The reference to the StateManager that takes care of global operations.
      */
     private StateManager         manager;
     
+    /*
+     * (non-Javadoc)
+     * 
+     * @see java.lang.Thread#run()
+     */
+    @Override
+    public void run() {
+        
+        logger.debug("Transaction:: " + this.getName() + " has started...");
+        
+        while (!this.record.getStatus()) {
+            
+            logger.info(String.format("Initiating transaction:: %s", this.getName()));
+            logger.info(String.format("Taking ownership of `writeSet` members of transaction:: %s", this.getName()));
+            
+            // take ownership of `writeSet` members
+            Boolean ownershipStatus = this.takeOwnership();
+            
+            if (!ownershipStatus) {
+                
+                // failed to take ownership, rollback and goto sleep, and then
+                // retry from beginning
+                
+                logger.info(String.format(
+                        "MODERATE:: Transaction %s has failed to take ownership of all of its writeSet members, retrying after sometime",
+                        this.getName()));
+                
+                // since there has been no modification to the writeSet members
+                // yet, the only change that needs to be reverted is
+                // the release of writeSet members' ownership.
+                this.releaseOwnership();
+                
+                try {
+                    
+                    Thread.sleep(MAX_SLEEP_WAIT_TIME);
+                } catch (InterruptedException e) {
+                    
+                    logger.error(e.getMessage(), e);
+                }
+                
+                continue;
+            }
+            
+            logger.info(
+                    String.format("Transaction:: %s has taken ownership successfully, now moving on to taking backups",
+                            this.getName()));
+            
+            // take backup of the states of the read and write sets
+            this.takeBackup();
+            
+            logger.info(
+                    String.format("Transaction:: %s has taken backup, starting transaction operation", this.getName()));
+            
+            // apply the transaction's operational logic to the writeSet and
+            // readSet members
+            Boolean operationStatus = this.operation.apply();
+            
+            if (!operationStatus) {
+                
+                // failed to operate successfully, this transaction is flawed,
+                // bailing out
+                logger.error(String.format(
+                        "CRITICAL:: Transaction:: %s has faulty operational logic, bailing out after rolling back",
+                        this.getName()));
+                
+                this.rollback();
+                
+                this.record.setStatus(true);
+                
+                break;
+            }
+            
+            logger.info(
+                    String.format("Trnasaction:: %s operation completed, moving to commit changes...", this.getName()));
+            
+            // commit changes
+            Boolean commitStatus = this.commit();
+            
+            if (!commitStatus) {
+                
+                // failed to commit changes to the writeSet, hence rolling back
+                // and then retrying
+                logger.error(String.format(
+                        "MODERATE:: Transaction:: %s couldn't commit its changes, rolling back and retrying...",
+                        this.getName()));
+                
+                this.rollback();
+                
+                try {
+                    
+                    Thread.sleep(MAX_SLEEP_WAIT_TIME);
+                } catch (InterruptedException e) {
+                    
+                    logger.error(e.getMessage(), e);
+                }
+                
+                continue;
+            }
+            
+            logger.info(String.format(
+                    "transaction:: %s has successfully committed its changes made to the writeSet members, marking transaction as completed.",
+                    this.getName()));
+            
+            // since the commit was successful, the transaction releases all its
+            // writeSet members of its ownership and marks itself as complete
+            this.releaseOwnership();
+            
+            // marks itself as complete
+            this.record.setStatus(true);
+        }
+        
+        logger.debug("Transaction:: " + this.getName() + " has ended...");
+    }
+    
     /**
      * <p>
-     * Takes ownership of all the memory cells in the write set.
+     * Takes ownership of all the `MemCells` referenced in the transaction's
+     * `writeSet`.
      * 
-     * @return status of operation, true if successfully took ownership of all
-     *         the memorycells, otherwise false
+     * @return <b>true</b> if all the transaction was able to take ownership of
+     *         all writeSet members, else return <b>false</b>
      */
     private Boolean takeOwnership() {
         
-        Set<Integer> writeSet = this.record.getWriteSet();
+        Queue<String> writeSet = new LinkedBlockingQueue<>(this.record.getWriteSet());
         
-        Counter ownershipCount = new Counter(0);
+        int maxOwnershipCount = writeSet.size();
         
-        writeSet.stream().forEach(memoryCellId -> {
+        // the status of the ownership phase, by default we assume that it fails
+        // it is only successful if all the writeSet members are successfully
+        // owned by the transaction
+        Boolean status = false;
+        
+        while (!writeSet.isEmpty() && maxOwnershipCount > 0) {
             
-            Transaction owner = this.manager.getOwner(memoryCellId);
+            // the variableName of the `Variable` that needs to be
+            // owned by this transaction
+            String variableName = writeSet.poll();
             
-            // take ownership only if the object is not owned by other
-            // transaction
-            if (Objects.isNull(owner)) {
+            Optional<Transaction> currentOwner = this.manager.getOwner(variableName);
+            
+            if (!currentOwner.isPresent()) {
                 
-                this.manager.setOwner(memoryCellId, this);
-                ownershipCount.increment();
-            } else if (this.equals(owner)) {
+                // set owner -- successfully took ownership
+                this.manager.setOwner(variableName, this);
                 
-                // owned by itself, do nothing and move on
-                ownershipCount.increment();
+                // log
+                logger.debug(String.format("Transaction:: %s took ownership of Variable:: %s",
+                        this.record.getDescription(), variableName));
+                
+                // reduce the number of ownerships remaining
+                maxOwnershipCount--;
             }
-        });
-        
-        // return true if ownership of all the writeset members was obtained
-        if (ownershipCount.getValue() == this.record.getWriteSet().size()) {
-            
-            return true;
-        } else {
-            
-            return false;
         }
+        
+        if (maxOwnershipCount <= 0) {
+            
+            // all the members of the writeSet were owned successfully by this
+            // transaction
+            status = true;
+        }
+        
+        return status;
     }
     
     /**
@@ -106,64 +240,169 @@ public class Transaction extends Thread {
      * Takes the backup of all the members in the read set and write set.
      * <br>
      * <p>
-     * Incase of a rollback, the write set member contents are restored, from
-     * the record.oldValues.
+     * In case of a rollback, the `<i>writeSet</i>` member contents are
+     * restored, from the <i>record.oldValues</i>.
      * <p>
      * While committing, the values of the read set and oldValues is checked, if
      * they are different commit fails.
      */
     private void takeBackup() {
         
-        Set<Integer> writeSet = this.record.getWriteSet();
-        Set<Integer> readSet = this.record.getReadSet();
+        Queue<String> writeSet = new LinkedBlockingQueue<>(this.record.getWriteSet());
+        Queue<String> readSet = new LinkedBlockingQueue<>(this.record.getReadSet());
         
-        writeSet.stream().forEach(memoryCellId -> {
+        while (!writeSet.isEmpty()) {
             
-            // take backup of the states of the MemoryCell of writeSet
-        });
+            // Backing up `writeSet` members
+            String variableName = writeSet.poll();
+            
+            // get the current state of the `Variable` or `MemCell` for creating
+            // the backup, need to be careful since the Transaction extends
+            // Thread class it has a `State` enum internally and that will cause
+            // name conflicts with my foop.core.State. The solution is to use
+            // fully qualified name of my State class.
+            Optional<foop.core.State> currentState = this.manager.read(variableName);
+            
+            if (currentState.isPresent()) {
+                
+                // if we got something for the current state, we need to store
+                // it as backup
+                this.record.getOldValues().put(variableName, currentState.get());
+            }
+        }
         
-        readSet.stream().forEach(memoryCellId -> {
+        while (!readSet.isEmpty()) {
             
-            // take backup of the states of the MemoryCell of readSet
-        });
+            // Backing up `readSet` members
+            String variableName = readSet.poll();
+            
+            Optional<foop.core.State> currentState = this.manager.read(variableName);
+            
+            if (currentState.isPresent()) {
+                
+                this.record.getOldValues().put(variableName, currentState.get());
+            }
+        }
     }
     
     /**
      * <p>
-     * Releases the ownership of the memory cells in the write set
-     * 
-     * @return true if all were released successfully, else false
+     * Rolls back all changes made by the transaction and releases ownerships of
+     * the writeSet members as well.
      */
-    private Boolean releaseOwnership() {
+    private void rollback() {
         
-        Set<Integer> writeSet = this.record.getWriteSet();
+        logger.debug("Initiating rollback for transaction:: " + this.getName());
         
-        Counter ownershipCount = new Counter(0);
+        Queue<String> writeSet = new LinkedBlockingQueue<>(this.record.getWriteSet());
         
-        writeSet.stream().forEach(memoryCellId -> {
+        while (!writeSet.isEmpty()) {
             
-            Transaction owner = this.manager.getOwner(memoryCellId);
+            String variableName = writeSet.poll();
             
-            // release ownership only if the object is owned by this transaction
-            if (Objects.isNull(owner)) {
-                
-                // no owner to release, just move on
-                ownershipCount.increment();
-            } else if (this.equals(owner)) {
-                
-                // release if it the memory cell is owned by this transaction
-                this.manager.releaseOwnership(memoryCellId);
-                
-                ownershipCount.increment();
-            }
-        });
-        
-        if (ownershipCount.getValue() == this.record.getWriteSet().size()) {
+            // fetch the backup
+            foop.core.State backup = this.record.getOldValues().get(variableName);
             
-            return true;
-        } else {
-            
-            return false;
+            // restore the backup
+            this.manager.write(variableName, backup);
         }
+        
+        // release all the writeSet members from ownership
+        this.releaseOwnership();
+        
+        logger.debug("Rollback complete for transaction:: " + this.getName());
+    }
+    
+    /**
+     * <p>
+     * Commits the changes made by the transaction to its writeSet members after
+     * referring to the state's of its readSet members.
+     * 
+     * @return true if commit was successful else returns false
+     */
+    private Boolean commit() {
+        
+        logger.debug(String.format("Initiating commit for transaction:: %s", this.getName()));
+        
+        Boolean status = false;
+        
+        Queue<String> readSet = new LinkedBlockingQueue<>(this.record.getReadSet());
+        
+        while (!readSet.isEmpty()) {
+            
+            String variableName = readSet.poll();
+            
+            Optional<foop.core.State> currentState = this.manager.read(variableName);
+            
+            foop.core.State backup = this.record.getOldValues().get(variableName);
+            
+            if (currentState.isPresent()) {
+                
+                // there is some non-null state in the statetable.
+                if (null == backup) {
+                    
+                    // this means that when the backup was taken, the readSet
+                    // member was un-initiaized but now it has some non-null
+                    // state this means that it has been modified in some way
+                    // and this
+                    // might not be good since the new state of the readSet
+                    // member might cause some
+                    // problem with states of the writeSet members.
+                    
+                    // commit failed
+                    status = false;
+                    break;
+                } else if (!currentState.get().equals(backup)) {
+                    
+                    // backup is not null, now check if their values are equal
+                    status = false;
+                    break;
+                } else {
+                    
+                    // backup of the readSet member matches its current state
+                    status = true;
+                }
+            } else {
+                
+                // currentstate is empty or null, if old state was not null,
+                // then there has been a change in state
+                if (null == backup) {
+                    
+                    // means that both currentState of the readSet member and
+                    // its backup were empty
+                    status = true;
+                } else {
+                    
+                    status = false;
+                }
+            }
+        }
+        
+        logger.debug(String.format("Completing commit for transaction:: %s", this.getName()));
+        
+        return status;
+    }
+    
+    /**
+     * <p>
+     * Releases the ownerships of all the writeSet member `MemCells`
+     */
+    private void releaseOwnership() {
+        
+        logger.debug(String.format("Initiating release of ownership of writeSet members of transaction:: %s",
+                this.getName()));
+        
+        Queue<String> writeSet = new LinkedBlockingQueue<>(this.record.getWriteSet());
+        
+        while (!writeSet.isEmpty()) {
+            
+            String variableName = writeSet.poll();
+            
+            // release ownership
+            this.manager.releaseOwnership(variableName);
+        }
+        
+        logger.debug(
+                String.format("Finished release of ownership of writeSet members of transaction:: %s", this.getName()));
     }
 }

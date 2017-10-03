@@ -10,14 +10,12 @@ package foop.core;
 
 /**
  * <p>
- * The <em> State </em> represents the state of the object. It is maintained in
- * the state table.
+ * The <em> State </em> represents the state of the `Object`. It is maintained
+ * in the `<i>stateTable</i>`. It is the `mutable` part of the `MemCell`.
  * 
  * @author sidmishraw
  *
  *         Qualified Name: foop.core.State
  *
  */
-public interface State {
-    
-}
+public abstract class State {}
