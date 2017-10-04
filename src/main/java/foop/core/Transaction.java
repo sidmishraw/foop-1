@@ -54,10 +54,15 @@ public class Transaction extends Thread {
          * <p>
          * Applies the operation logic
          * 
+         * @param t
+         *            The transaction itself, this is passed in order to take
+         *            advantage of the Java8 lambda syntax
+         * 
          * @return true if the operation was completed successfully, else return
          *         false
+         * 
          */
-        public boolean apply();
+        public boolean apply(Transaction t);
     }
     
     /**
@@ -128,7 +133,7 @@ public class Transaction extends Thread {
             
             // apply the transaction's operational logic to the writeSet and
             // readSet members
-            Boolean operationStatus = this.operation.apply();
+            Boolean operationStatus = this.operation.apply(this);
             
             if (!operationStatus) {
                 
@@ -146,7 +151,7 @@ public class Transaction extends Thread {
             }
             
             logger.info(
-                    String.format("Trnasaction:: %s operation completed, moving to commit changes...", this.getName()));
+                    String.format("Transaction:: %s operation completed, moving to commit changes...", this.getName()));
             
             // commit changes
             Boolean commitStatus = this.commit();
