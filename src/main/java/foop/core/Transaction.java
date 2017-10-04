@@ -10,10 +10,13 @@ package foop.core;
 
 import java.util.Optional;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import lombok.Setter;
 
 /**
  * @author sidmishraw
@@ -32,7 +35,7 @@ public class Transaction extends Thread {
      * <p>
      * record holds the metadata of the transaction
      */
-    private Record              record;
+    private @Setter Record      record;
     
     /**
      * <p>
@@ -45,7 +48,7 @@ public class Transaction extends Thread {
      *
      */
     @FunctionalInterface
-    private interface TransactionOperation {
+    public static interface TransactionOperation {
         
         /**
          * <p>
@@ -62,13 +65,13 @@ public class Transaction extends Thread {
      * <i>operation</i>: The functional interface that is used to define the
      * transaction's operational logic(execution logic).
      */
-    private TransactionOperation operation;
+    private @Setter TransactionOperation operation;
     
     /**
      * <p>
      * The reference to the StateManager that takes care of global operations.
      */
-    private StateManager         manager;
+    private @Setter StateManager         manager;
     
     /*
      * (non-Javadoc)
@@ -405,4 +408,46 @@ public class Transaction extends Thread {
         logger.debug(
                 String.format("Finished release of ownership of writeSet members of transaction:: %s", this.getName()));
     }
+    
+    /*** Book keeping methods **/
+    
+    /**
+     * <p>
+     * Adds the member <i>Variable</i> or `MemCell`s names to the writeSet of
+     * the transaction.
+     * 
+     * @param variableNames
+     *            The names of the `MemCell`s that this transaction intends to
+     *            modify/write
+     */
+    public final void addWriteSetMembers(String... variableNames) {
+        
+        Set<String> writeSet = this.record.getWriteSet();
+        
+        for (String variableName : variableNames) {
+            
+            writeSet.add(variableName);
+        }
+    }
+    
+    /**
+     * <p>
+     * Adds the member <i>Variable</i> or `MemCell`s names to the `readSet` of
+     * the transaction.
+     * 
+     * @param variableNames
+     *            The names of the `MemCell`s that this transaction intends to
+     *            read from.
+     */
+    public final void addReadSetMembers(String... variableNames) {
+        
+        Set<String> readSet = this.record.getReadSet();
+        
+        for (String variableName : variableNames) {
+            
+            readSet.add(variableName);
+        }
+    }
+    
+    /*** Book keeping methods **/
 }
