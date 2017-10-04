@@ -406,8 +406,13 @@ public class Transaction extends Thread {
             
             String variableName = writeSet.poll();
             
-            // release ownership
-            this.manager.releaseOwnership(variableName);
+            if (this.manager.getOwner(variableName).isPresent()
+                    && this.manager.getOwner(variableName).get().equals(this)) {
+                
+                // release ownership only if this transaction owns it
+                // this is to prevent race conditions(?)
+                this.manager.releaseOwnership(variableName);
+            }
         }
         
         logger.debug(
@@ -450,7 +455,15 @@ public class Transaction extends Thread {
         
         for (String variableName : variableNames) {
             
-            readSet.add(variableName);
+            // since the variables that are needed by the transaction in its
+            // writeSet are going to be updated anyways
+            // it would be a better idea to have them owned only once, hence the
+            // variables that are already a part of the writeSet are not going
+            // to be added to the readSet
+            if (!this.record.getWriteSet().contains(variableName)) {
+                
+                readSet.add(variableName);
+            }
         }
     }
     
