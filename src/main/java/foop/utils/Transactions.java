@@ -38,16 +38,14 @@ public final class Transactions {
      * 
      * @param description
      *            The description of the transaction
-     * @param operation
-     *            The operational logic of the transaction
+     * 
      * @param manager
      *            The reference to the <i>StateManager</i> that is in charge of
      *            the world, i.e the stateTable, memory and stm.
      * 
      * @return The new transaction
      */
-    public static final Transaction newTransaction(String description, Transaction.TransactionOperation operation,
-            StateManager manager) {
+    public static final Transaction newTransaction(String description, StateManager manager) {
         
         Record record = new Record();
         record.setDescription(description);
@@ -58,7 +56,6 @@ public final class Transactions {
         Transaction t = new Transaction();
         
         t.setRecord(record);
-        t.setOperation(operation);
         t.setManager(manager);
         
         return t;
@@ -96,6 +93,23 @@ public final class Transactions {
     public static final Transaction addReadSetMembers(Transaction t, String... variableNames) {
         
         t.addReadSetMembers(variableNames);
+        
+        return t;
+    }
+    
+    /**
+     * <p>
+     * Adds the transaction's operational logic
+     * 
+     * @param t
+     *            The transaction
+     * @param operation
+     *            The operational logic of the transaction
+     * @return The modified transaction
+     */
+    public static final Transaction addTransactionOperation(Transaction t, Transaction.TransactionOperation operation) {
+        
+        t.setOperation(operation);
         
         return t;
     }
