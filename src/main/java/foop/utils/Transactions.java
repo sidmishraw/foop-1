@@ -15,6 +15,11 @@ import foop.core.Transaction;
 /**
  * <p>
  * Provides utilities for creating <i>Transaction</i>s.
+ * Needs to be initialized using the <i>InstanceFactory</i> just like the
+ * <i>StateManager</i>
+ * <br>
+ * <br>
+ * <b>Note: This is not thread safe for creating transactions</b>
  * 
  * @author sidmishraw
  *
@@ -28,7 +33,14 @@ public final class Transactions {
      * Just for the sake of simplicity, the transaction version is going to be a
      * simple int that will get updated for each transaction we make.
      */
-    private static int transactionVersion = 0;
+    private int         transactionVersion = 0;
+    
+    /**
+     * <p>
+     * The static Transaction is going to be used to provide a non thread safe
+     * builder style of making transactions by method chaining
+     */
+    private Transaction t                  = null;
     
     /**
      * <p>
@@ -43,22 +55,22 @@ public final class Transactions {
      *            The reference to the <i>StateManager</i> that is in charge of
      *            the world, i.e the stateTable, memory and stm.
      * 
-     * @return The new transaction
+     * @return The <i>Transactions</i> utility for builder method chaining
      */
-    public static final Transaction newTransaction(String description, StateManager manager) {
+    public final Transactions newTransaction(String description, StateManager manager) {
         
         Record record = new Record();
         record.setDescription(description);
         record.setVersion(transactionVersion);
         
-        transactionVersion++;
+        this.transactionVersion++;
         
-        Transaction t = new Transaction();
+        this.t = new Transaction();
         
-        t.setRecord(record);
-        t.setManager(manager);
+        this.t.setRecord(record);
+        this.t.setManager(manager);
         
-        return t;
+        return this;
     }
     
     /**
@@ -66,17 +78,16 @@ public final class Transactions {
      * Adds the <i>Variable</i>s or `MemCell`s to the `writeSet` of the
      * transaction.
      * 
-     * @param t
-     *            The transaction
      * @param variableNames
      *            The names of the `MemCell`s or <i>Variable</i>s
-     * @return The modified transaction
+     * 
+     * @return The <i>Transactions</i> utility for builder method chaining
      */
-    public static final Transaction addWriteSetMembers(Transaction t, String... variableNames) {
+    public final Transactions addWriteSetMembers(String... variableNames) {
         
-        t.addWriteSetMembers(variableNames);
+        this.t.addWriteSetMembers(variableNames);
         
-        return t;
+        return this;
     }
     
     /**
@@ -84,33 +95,42 @@ public final class Transactions {
      * Adds the <i>Variable</i>s or `MemCell`s to the `readSet` of the
      * transaction.
      * 
-     * @param t
-     *            The transaction
      * @param variableNames
      *            The names of the `MemCell`s or <i>Variable</i>s
-     * @return The modified transaction
+     * 
+     * @return The <i>Transactions</i> utility for builder method chaining
      */
-    public static final Transaction addReadSetMembers(Transaction t, String... variableNames) {
+    public final Transactions addReadSetMembers(String... variableNames) {
         
-        t.addReadSetMembers(variableNames);
+        this.t.addReadSetMembers(variableNames);
         
-        return t;
+        return this;
     }
     
     /**
      * <p>
      * Adds the transaction's operational logic
      * 
-     * @param t
-     *            The transaction
      * @param operation
      *            The operational logic of the transaction
-     * @return The modified transaction
+     * 
+     * @return The <i>Transactions</i> utility for builder method chaining
      */
-    public static final Transaction addTransactionOperation(Transaction t, Transaction.TransactionOperation operation) {
+    public final Transactions addTransactionOperation(Transaction.TransactionOperation operation) {
         
-        t.setOperation(operation);
+        this.t.setOperation(operation);
         
-        return t;
+        return this;
+    }
+    
+    /**
+     * <p>
+     * The terminal method of the chaining, gives the constructed transaction
+     * 
+     * @return The constructed transaction
+     */
+    public final Transaction get() {
+        
+        return this.t;
     }
 }
