@@ -8,10 +8,13 @@
  */
 package foop.core;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * <p>
@@ -45,7 +48,6 @@ import lombok.Data;
  *         Qualified Name: foop.core.Record
  *
  */
-@Data
 public class Record {
     
     /**
@@ -53,9 +55,9 @@ public class Record {
      * The status of the Transaction, false means that it has not completed,
      * else its true
      */
-    private Boolean            status = false;
-    private Integer            version;
-    private String             description;
+    private @Getter @Setter Boolean    status = false;
+    private @Getter @Setter Integer    version;
+    private @Getter @Setter String     description;
     
     /**
      * <p>
@@ -63,7 +65,7 @@ public class Record {
      * `MemCell`s that the transaction needs to access(take ownership) inorder
      * to modify.
      */
-    private Set<String>        writeSet;
+    private @Getter Set<String>        writeSet;
     
     /**
      * <p>
@@ -71,7 +73,7 @@ public class Record {
      * `MemCell`s that the transaction needs to access in order to read the
      * values from.
      */
-    private Set<String>        readSet;
+    private @Getter Set<String>        readSet;
     
     /**
      * <p>
@@ -79,5 +81,16 @@ public class Record {
      * <i>Variable</i>s or `MemCell`s so that it can restore them incase it
      * fails to commit.
      */
-    private Map<String, State> oldValues;
+    private @Getter Map<String, State> oldValues;
+    
+    /**
+     * 
+     */
+    public Record() {
+        
+        this.status = false;
+        this.writeSet = new HashSet<>();
+        this.readSet = new HashSet<>();
+        this.oldValues = new HashMap<>();
+    }
 }
