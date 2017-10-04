@@ -332,7 +332,7 @@ public class Transaction extends Thread {
         
         logger.debug(String.format("Initiating commit for transaction:: %s", this.getName()));
         
-        Boolean status = false;
+        Boolean status = true;
         
         Queue<String> readSet = new LinkedBlockingQueue<>(this.record.getReadSet());
         
