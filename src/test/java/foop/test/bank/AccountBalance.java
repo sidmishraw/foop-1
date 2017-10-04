@@ -9,9 +9,9 @@
 package foop.test.bank;
 
 import foop.core.State;
-import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 
 /**
  * @author sidmishraw
@@ -21,6 +21,7 @@ import lombok.Getter;
  */
 @EqualsAndHashCode(
         callSuper = false)
+@ToString
 public class AccountBalance extends State {
     
     private @Getter float balance;
