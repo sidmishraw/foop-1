@@ -11,11 +11,13 @@ package foop.core;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import lombok.Getter;
 import lombok.Setter;
 
 /**
@@ -27,15 +29,19 @@ import lombok.Setter;
 public class Transaction extends Thread {
     
     /*** Log and administrative stuff *****/
-    private static final Logger logger              = LoggerFactory.getLogger(Transaction.class);
-    private static final long   MAX_SLEEP_WAIT_TIME = 1000;
+    private static final Logger            logger              = LoggerFactory.getLogger(Transaction.class);
+    private static final long              MAX_SLEEP_WAIT_TIME = 1000;
+    
+    // for scheduling purposes, to make sure that the main thread
+    // waits till the transaction is done processing!
+    private @Getter @Setter CountDownLatch latch;
     /*** Log and administrative stuff *****/
     
     /**
      * <p>
      * record holds the metadata of the transaction
      */
-    private @Setter Record      record;
+    private @Setter Record                 record;
     
     /**
      * <p>
@@ -184,6 +190,10 @@ public class Transaction extends Thread {
             // marks itself as complete
             this.record.setStatus(true);
         }
+        
+        // countdown the latches to indicate that the transaction is done
+        // processing
+        this.latch.countDown();
         
         logger.debug("Transaction:: " + this.getName() + " has ended...");
     }

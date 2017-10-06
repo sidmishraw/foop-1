@@ -1,0 +1,78 @@
+15:43:34.224 [main] INFO foop.test.bank.BankDriver - Initiating test driver 2...
+15:43:34.308 [main] INFO foop.core.StateManager - Updating Variable :: name: Account1 with current state: null
+15:43:34.311 [main] INFO foop.core.StateManager - Updated Variable :: name: Account1 to new state: AccountBalance(balance=500.0)
+15:43:34.311 [main] INFO foop.core.StateManager - Updating Variable :: name: Account2 with current state: null
+15:43:34.311 [main] INFO foop.core.StateManager - Updated Variable :: name: Account2 to new state: AccountBalance(balance=1500.0)
+15:43:34.312 [main] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=500.0)]
+15:43:34.312 [main] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1500.0)]
+15:43:34.313 [main] INFO foop.test.bank.BankDriver - Initially:: Acc1:: 500.000000, Acc2:: 1500.000000
+15:43:34.318 [T2] DEBUG foop.core.Transaction - Transaction:: T2 has started...
+15:43:34.318 [T1] DEBUG foop.core.Transaction - Transaction:: T1 has started...
+15:43:34.318 [T2] INFO foop.core.Transaction - Initiating transaction:: T2
+15:43:34.318 [T1] INFO foop.core.Transaction - Initiating transaction:: T1
+15:43:34.318 [T2] INFO foop.core.Transaction - Taking ownership of `writeSet` members of transaction:: T2
+15:43:34.318 [T1] INFO foop.core.Transaction - Taking ownership of `writeSet` members of transaction:: T1
+15:43:34.319 [T2] DEBUG foop.core.Transaction - Transaction:: T2 took ownership of Variable:: Account1
+15:43:34.319 [T1] DEBUG foop.core.Transaction - Transaction:: T1 took ownership of Variable:: Account1
+15:43:34.319 [T2] DEBUG foop.core.Transaction - Transaction:: T2 took ownership of Variable:: Account2
+15:43:34.319 [T1] INFO foop.core.Transaction - MODERATE:: Transaction T1 has failed to take ownership of all of its writeSet members, retrying after sometime
+15:43:34.319 [T2] INFO foop.core.Transaction - Transaction:: T2 has taken ownership successfully, now moving on to taking backups
+15:43:34.319 [T1] DEBUG foop.core.Transaction - Initiating release of ownership of writeSet members of transaction:: T1
+15:43:34.319 [T1] DEBUG foop.core.Transaction - Finished release of ownership of writeSet members of transaction:: T1
+15:43:34.319 [T2] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=500.0)]
+15:43:34.320 [T2] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1500.0)]
+15:43:34.320 [T2] INFO foop.core.Transaction - Transaction:: T2 has taken backup, starting transaction operation
+15:43:34.320 [T2] INFO foop.test.bank.BankDriver - Withdrawing amount:: 100.000000 into bank account:: Account1
+15:43:34.320 [T2] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=500.0)]
+15:43:34.320 [T2] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=500.0)]
+15:43:34.321 [T2] INFO foop.core.StateManager - Updating Variable :: name: Account1 with current state: AccountBalance(balance=500.0)
+15:43:34.321 [T2] INFO foop.core.StateManager - Updated Variable :: name: Account1 to new state: AccountBalance(balance=400.0)
+15:43:34.321 [T2] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=400.0)]
+15:43:34.321 [T2] INFO foop.test.bank.BankDriver - Withdrew amount:: 100.000000 into bank account:: Account1, new amount:: 400.000000
+15:43:34.321 [T2] INFO foop.test.bank.BankDriver - Depositing amount:: 100.000000 into bank account:: Account2
+15:43:34.322 [T2] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1500.0)]
+15:43:34.322 [T2] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1500.0)]
+15:43:34.322 [T2] INFO foop.core.StateManager - Updating Variable :: name: Account2 with current state: AccountBalance(balance=1500.0)
+15:43:34.322 [T2] INFO foop.core.StateManager - Updated Variable :: name: Account2 to new state: AccountBalance(balance=1600.0)
+15:43:34.322 [T2] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1600.0)]
+15:43:34.323 [T2] INFO foop.test.bank.BankDriver - Deposited amount:: 100.000000 into bank account:: Account2, new amount:: 1600.000000
+15:43:34.323 [T2] INFO foop.core.Transaction - Transaction:: T2 operation completed, moving to commit changes...
+15:43:34.323 [T2] DEBUG foop.core.Transaction - Initiating commit for transaction:: T2
+15:43:34.323 [T2] DEBUG foop.core.Transaction - Completing commit for transaction:: T2
+15:43:34.323 [T2] INFO foop.core.Transaction - transaction:: T2 has successfully committed its changes made to the writeSet members, marking transaction as completed.
+15:43:34.323 [T2] DEBUG foop.core.Transaction - Initiating release of ownership of writeSet members of transaction:: T2
+15:43:34.323 [T2] DEBUG foop.core.Transaction - Finished release of ownership of writeSet members of transaction:: T2
+15:43:34.323 [T2] DEBUG foop.core.Transaction - Transaction:: T2 has ended...
+15:43:35.324 [T1] INFO foop.core.Transaction - Initiating transaction:: T1
+15:43:35.324 [T1] INFO foop.core.Transaction - Taking ownership of `writeSet` members of transaction:: T1
+15:43:35.324 [T1] DEBUG foop.core.Transaction - Transaction:: T1 took ownership of Variable:: Account1
+15:43:35.324 [T1] DEBUG foop.core.Transaction - Transaction:: T1 took ownership of Variable:: Account2
+15:43:35.324 [T1] INFO foop.core.Transaction - Transaction:: T1 has taken ownership successfully, now moving on to taking backups
+15:43:35.325 [T1] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=400.0)]
+15:43:35.325 [T1] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1600.0)]
+15:43:35.325 [T1] INFO foop.core.Transaction - Transaction:: T1 has taken backup, starting transaction operation
+15:43:35.325 [T1] INFO foop.test.bank.BankDriver - Withdrawing amount:: 500.000000 into bank account:: Account2
+15:43:35.325 [T1] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1600.0)]
+15:43:35.325 [T1] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1600.0)]
+15:43:35.326 [T1] INFO foop.core.StateManager - Updating Variable :: name: Account2 with current state: AccountBalance(balance=1600.0)
+15:43:35.326 [T1] INFO foop.core.StateManager - Updated Variable :: name: Account2 to new state: AccountBalance(balance=1100.0)
+15:43:35.326 [T1] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1100.0)]
+15:43:35.326 [T1] INFO foop.test.bank.BankDriver - Withdrew amount:: 500.000000 into bank account:: Account2, new amount:: 1100.000000
+15:43:35.326 [T1] INFO foop.test.bank.BankDriver - Depositing amount:: 500.000000 into bank account:: Account1
+15:43:35.326 [T1] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=400.0)]
+15:43:35.327 [T1] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=400.0)]
+15:43:35.327 [T1] INFO foop.core.StateManager - Updating Variable :: name: Account1 with current state: AccountBalance(balance=400.0)
+15:43:35.327 [T1] INFO foop.core.StateManager - Updated Variable :: name: Account1 to new state: AccountBalance(balance=900.0)
+15:43:35.327 [T1] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=900.0)]
+15:43:35.327 [T1] INFO foop.test.bank.BankDriver - Deposited amount:: 500.000000 into bank account:: Account1, new amount:: 900.000000
+15:43:35.327 [T1] INFO foop.core.Transaction - Transaction:: T1 operation completed, moving to commit changes...
+15:43:35.328 [T1] DEBUG foop.core.Transaction - Initiating commit for transaction:: T1
+15:43:35.328 [T1] DEBUG foop.core.Transaction - Completing commit for transaction:: T1
+15:43:35.328 [T1] INFO foop.core.Transaction - transaction:: T1 has successfully committed its changes made to the writeSet members, marking transaction as completed.
+15:43:35.328 [T1] DEBUG foop.core.Transaction - Initiating release of ownership of writeSet members of transaction:: T1
+15:43:35.328 [T1] DEBUG foop.core.Transaction - Finished release of ownership of writeSet members of transaction:: T1
+15:43:35.328 [T1] DEBUG foop.core.Transaction - Transaction:: T1 has ended...
+15:43:35.328 [main] INFO foop.core.StateManager - Variable :: name: Account1, has state: Optional[AccountBalance(balance=900.0)]
+15:43:35.329 [main] INFO foop.core.StateManager - Variable :: name: Account2, has state: Optional[AccountBalance(balance=1100.0)]
+15:43:35.329 [main] INFO foop.test.bank.BankDriver - Finally:: Acc1:: 900.000000, Acc2:: 1100.000000
+15:43:35.329 [main] INFO foop.test.bank.BankDriver - Finishing up test driver 2...

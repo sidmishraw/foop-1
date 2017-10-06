@@ -8,6 +8,8 @@
  */
 package foop.test.bank;
 
+import java.util.concurrent.CountDownLatch;
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,7 +114,7 @@ public class BankDriver {
                 ((AccountBalance) manager.read("Account2").get()).getBalance()));
         
         Transaction t = ts.newTransaction("T1", manager).addWriteSetMembers("Account1", "Account2")
-                .addReadSetMembers("Account1", "Account2").addTransactionOperation((Transaction tt) -> {
+                .addReadSetMembers("Account1", "Account2").addTransactionOperation(() -> {
                     
                     withdraw("Account2", 500.00F);
                     deposit("Account1", 500.00F);
@@ -136,5 +138,75 @@ public class BankDriver {
                 ((AccountBalance) manager.read("Account2").get()).getBalance()));
         
         logger.info("Finishing up BankDriver...");
+    }
+    
+    /**
+     * <p>
+     * Test drive 2: This time we have 2 transactions that will be taking part
+     * in the workflow.
+     * T1 :: withdraw 500 from Account2 and deposit into Account1
+     * T2 :: withdraw 100 from Account1 and deposit into Account2
+     * 
+     * Since both these transactions are conflicing in nature, it will be a good
+     * show!!!
+     */
+    @Test
+    public void testDrive2() {
+        
+        logger.info(String.format("Initiating test driver 2..."));
+        
+        // set up the bank accounts Account1 and Account2
+        setupBankAccounts12();
+        
+        logger.info(String.format("Initially:: Acc1:: %f, Acc2:: %f",
+                ((AccountBalance) manager.read("Account1").get()).getBalance(),
+                ((AccountBalance) manager.read("Account2").get()).getBalance()));
+        
+        Transaction t1 = ts.newTransaction("T1", manager).addWriteSetMembers("Account1", "Account2")
+                .addReadSetMembers("Account1", "Account2").addTransactionOperation(() -> {
+                    
+                    withdraw("Account2", 500.00F);
+                    deposit("Account1", 500.00F);
+                    
+                    return true;
+                }).get();
+        
+        Transaction t2 = ts.newTransaction("T2", manager).addWriteSetMembers("Account1", "Account2")
+                .addReadSetMembers("Account1", "Account2").addTransactionOperation(() -> {
+                    
+                    withdraw("Account1", 100.00F);
+                    deposit("Account2", 100.00F);
+                    
+                    return true;
+                }).get();
+        
+        CountDownLatch latch = new CountDownLatch(2);
+        
+        // for simplicity sake, renaming threads to match their description
+        // this is unnessecary but ---
+        t1.setName("T1");
+        t2.setName("T2");
+        
+        // add the t1 to latches
+        t1.setLatch(latch);
+        t2.setLatch(latch);
+        
+        t1.start();
+        t2.start();
+        
+        try {
+            
+            // wait till all the transactions are done
+            latch.await();
+        } catch (InterruptedException e) {
+            
+            logger.error(e.getMessage(), e);
+        }
+        
+        logger.info(String.format("Finally:: Acc1:: %f, Acc2:: %f",
+                ((AccountBalance) manager.read("Account1").get()).getBalance(),
+                ((AccountBalance) manager.read("Account2").get()).getBalance()));
+        
+        logger.info(String.format("Finishing up test driver 2..."));
     }
 }
