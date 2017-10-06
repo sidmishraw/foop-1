@@ -54,15 +54,11 @@ public class Transaction extends Thread {
          * <p>
          * Applies the operation logic
          * 
-         * @param t
-         *            The transaction itself, this is passed in order to take
-         *            advantage of the Java8 lambda syntax
-         * 
          * @return true if the operation was completed successfully, else return
          *         false
          * 
          */
-        public boolean apply(Transaction t);
+        public boolean apply();
     }
     
     /**
@@ -133,7 +129,7 @@ public class Transaction extends Thread {
             
             // apply the transaction's operational logic to the writeSet and
             // readSet members
-            Boolean operationStatus = this.operation.apply(this);
+            Boolean operationStatus = this.operation.apply();
             
             if (!operationStatus) {
                 
