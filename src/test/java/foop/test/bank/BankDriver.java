@@ -113,14 +113,21 @@ public class BankDriver {
                 ((AccountBalance) manager.read("Account1").get()).getBalance(),
                 ((AccountBalance) manager.read("Account2").get()).getBalance()));
         
-        Transaction t = ts.newTransaction("T1", manager).addWriteSetMembers("Account1", "Account2")
-                .addReadSetMembers("Account1", "Account2").addTransactionOperation(() -> {
+        Transaction t = ts.newTransaction("T1", manager)
+                .addWriteSetMembers("Account1", "Account2")
+                .addReadSetMembers("Account1", "Account2")
+                .addTransactionOperation(() -> {
                     
                     withdraw("Account2", 500.00F);
                     deposit("Account1", 500.00F);
                     
                     return true;
-                }).get();
+                })
+                .get();
+        
+        t.setName("T1");
+        
+        t.setLatch(new CountDownLatch(1));
         
         t.start();
         
@@ -162,23 +169,29 @@ public class BankDriver {
                 ((AccountBalance) manager.read("Account1").get()).getBalance(),
                 ((AccountBalance) manager.read("Account2").get()).getBalance()));
         
-        Transaction t1 = ts.newTransaction("T1", manager).addWriteSetMembers("Account1", "Account2")
-                .addReadSetMembers("Account1", "Account2").addTransactionOperation(() -> {
+        Transaction t1 = ts.newTransaction("T1", manager)
+                .addWriteSetMembers("Account1", "Account2")
+                .addReadSetMembers("Account1", "Account2")
+                .addTransactionOperation(() -> {
                     
                     withdraw("Account2", 500.00F);
                     deposit("Account1", 500.00F);
                     
                     return true;
-                }).get();
+                })
+                .get();
         
-        Transaction t2 = ts.newTransaction("T2", manager).addWriteSetMembers("Account1", "Account2")
-                .addReadSetMembers("Account1", "Account2").addTransactionOperation(() -> {
+        Transaction t2 = ts.newTransaction("T2", manager)
+                .addWriteSetMembers("Account1", "Account2")
+                .addReadSetMembers("Account1", "Account2")
+                .addTransactionOperation(() -> {
                     
                     withdraw("Account1", 100.00F);
                     deposit("Account2", 100.00F);
                     
                     return true;
-                }).get();
+                })
+                .get();
         
         CountDownLatch latch = new CountDownLatch(2);
         
@@ -207,6 +220,6 @@ public class BankDriver {
                 ((AccountBalance) manager.read("Account1").get()).getBalance(),
                 ((AccountBalance) manager.read("Account2").get()).getBalance()));
         
-        logger.info(String.format("Finishing up test driver 2..."));
+        logger.info(String.format("Finishing up test driver 2 of Bank Driver ..."));
     }
 }
